@@ -1,40 +1,87 @@
-# Walkthrough: Cypress Retry After Run
-
-I have created a `playground` directory to verify the plugin.
-
-## Setup
-The playground is located in `playground/`. It has been configured to use the local plugin.
-
-## Verification Steps
-
-### 1. Run Initial Tests (Expect Failures)
-Run the following command in the `playground` directory. This will execute the test suite, which contains intentional failures.
-
-```bash
-cd playground
-yarn install
-yarn test
-```
-
-Expectation:
-- Cypress should fail.
-- A `.cypress-failures.json` file should be created in the `playground` directory.
-
-### 2. Run Retry Command
-Now, run the retry script. This will use the plugin's CLI to read the failures and re-run only the failed tests.
-
-```bash
-yarn retry
-```
-
-Expectation:
-- Cypress should run again.
-- It should ONLY run "Example Failure A" and "Example Failure B".
-- "should pass" test should be skipped.
-
 ## Plugin Usage
-To use this in other projects:
-1. Install this package.
-2. Add the plugin to [cypress.config.js](file:///C:/Users/laert/.gemini/antigravity/scratch/cypress-retry-after-run/playground/cypress.config.js) ([setupNodeEvents](file:///C:/Users/laert/.gemini/antigravity/scratch/cypress-retry-after-run/playground/cypress.config.js#6-17)).
-3. Ensure `@cypress/grep` is installed and initialized.
-4. Run `cypress-retry` (or `npx cypress-retry`) to re-run failures.
+
+
+### 1. Installation
+```bash
+npm install --save-dev cypress-retry-after-run @cypress/grep
+# OR
+yarn add -D cypress-retry-after-run @cypress/grep
+```
+
+### 2. Configuration (`cypress.config.js`)
+You need to register the plugin in your `setupNodeEvents` function.
+
+```javascript
+const { defineConfig } = require('cypress');
+
+module.exports = defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      // 1. Load @cypress/grep (Required)
+      // Note: As of @cypress/grep v5+, use .plugin()
+      require('@cypress/grep/plugin').plugin(config);
+
+      // 2. Load cypress-retry-after-run
+      // This will record failed tests to .cypress-failures.json
+      require('cypress-retry-after-run')(on, config);
+
+      return config;
+    },
+  },
+});
+```
+
+### 3. Support File (`cypress/support/e2e.js`)
+Ensure `@cypress/grep` is initialized in your support file.
+
+```javascript
+const cypressGrep = require('@cypress/grep');
+cypressGrep.register();
+```
+
+### 4. Run Retry
+Run your tests as usual. If they fail, use the retry command to re-run only the failed ones.
+
+```bash
+# Via npm script (add "retry": "cypress-retry" to package.json)
+npm run retry
+
+# OR directly with npx/yarn
+npx cypress-retry
+yarn cypress-retry
+```
+
+### TypeScript Usage
+
+If you are using TypeScript (`cypress.config.ts`), the setup is similar but using `import` syntax.
+
+#### `cypress.config.ts`
+
+```typescript
+import { defineConfig } from 'cypress';
+// @ts-ignore
+import { plugin as grepPlugin } from '@cypress/grep/plugin';
+// @ts-ignore
+import cypressRetry from 'cypress-retry-after-run';
+
+export default defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      // 1. Load @cypress/grep
+      grepPlugin(config);
+
+      // 2. Load cypress-retry-after-run
+      cypressRetry(on, config);
+
+      return config;
+    },
+  },
+});
+```
+
+#### `cypress/support/e2e.ts`
+
+```typescript
+import { register } from '@cypress/grep';
+register();
+```
