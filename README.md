@@ -50,18 +50,6 @@ const cypressGrep = require('@cypress/grep');
 cypressGrep.register();
 ```
 
-### 4. Run Retry
-Run your tests as usual. If they fail, use the retry command to re-run only the failed ones.
-
-```bash
-# Via npm script (add "retry": "cypress-retry" to package.json)
-npm run retry
-
-# OR directly with npx/yarn
-npx cypress-retry
-yarn cypress-retry
-```
-
 ### TypeScript Usage
 
 If you are using TypeScript (`cypress.config.ts`), the setup is similar but using `import` syntax.
@@ -95,4 +83,16 @@ export default defineConfig({
 ```typescript
 import { register } from '@cypress/grep';
 register();
+```
+
+### 4. Run Retry
+Run your tests as usual. If some tests fail, use the retry command to re-run only the failed ones.
+
+```bash
+# Via npm script (add "retry": "cypress-retry" to package.json) if you want
+npm run retry
+
+# OR directly with npx/yarn
+npx cypress-retry
+yarn cypress-retry
 ```
