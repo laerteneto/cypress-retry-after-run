@@ -1,6 +1,13 @@
 # cypress-retry-after-run
-This plugin runs your Cypress tests after a run. Which means it runs first, then it will generate a file with the failed test cases, and then it will run again later only the failed test cases from the first run. 
+A Cypress plugin that enables you to **retry only the failed tests** from a previous run.
 
+In standard Cypress retries, tests are retried immediately within the same execution. However, sometimes you want to run the entire suite first, capture failures, and then trigger a **separate execution** that only runs those specific failed tests (maybe to deploy a fresh new data from an environment or do something else before retrying the failed tests).
+
+### How it works
+1.  **Records Failures**: The plugin listens to your test run and saves a list of failed tests to a `.cypress-failures.json` file.
+2.  **Smart Retry**: The included CLI command reads this file and launches Cypress again, using `@cypress/grep` to filter and run **only** the tests that failed previously.
+
+This is particularly useful in CI/CD pipelines to save time and resources by avoiding re-execution of passing tests.
 
 ## Plugin Usage
 
