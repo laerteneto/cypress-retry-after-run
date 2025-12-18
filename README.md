@@ -58,9 +58,7 @@ If you are using TypeScript (`cypress.config.ts`), the setup is similar but usin
 
 ```typescript
 import { defineConfig } from 'cypress';
-// @ts-ignore
 import { plugin as grepPlugin } from '@cypress/grep/plugin';
-// @ts-ignore
 import cypressRetry from 'cypress-retry-after-run';
 
 export default defineConfig({
@@ -84,6 +82,31 @@ export default defineConfig({
 import { register } from '@cypress/grep';
 register();
 ```
+
+If you are using TypeScript, it is also recommended to add the following or something similar to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": [
+      "es5",
+      "dom"
+    ],
+    "types": [
+      "cypress",
+      "node"
+    ],
+    "esModuleInterop": true,
+    "moduleResolution": "bundler",
+    "module": "esnext"
+  },
+  "include": [
+    "**/*.ts"
+  ]
+}
+```
+
 
 ### 4. Run Retry
 Run your tests as usual. If some tests fail, use the retry command to re-run only the failed ones.
