@@ -1,6 +1,6 @@
 {
   "name": "cypress-retry-after-run",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Cypress plugin to re-run only failed tests from the previous run using @cypress/grep",
   "main": "index.js",
   "scripts": {
