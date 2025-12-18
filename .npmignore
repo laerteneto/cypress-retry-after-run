@@ -1,0 +1,5 @@
+playground/
+.cypress-failures.json
+.git/
+.gitignore
+node_modules/

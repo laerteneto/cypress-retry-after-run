@@ -1,0 +1,40 @@
+{
+  "name": "cypress-retry-after-run",
+  "version": "1.0.0",
+  "description": "Cypress plugin to re-run only failed tests from the previous run using @cypress/grep",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "cypress-retry": "./bin/cypress-retry.js"
+  },
+  "files": [
+    "index.js",
+    "bin/**/*",
+    "README.md"
+  ],
+  "keywords": [
+    "cypress",
+    "plugin",
+    "retry",
+    "grep",
+    "testing",
+    "automation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laerteneto/cypress-retry-after-run.git"
+  },
+  "bugs": {
+    "url": "https://github.com/laerteneto/cypress-retry-after-run/issues"
+  },
+  "homepage": "https://github.com/laerteneto/cypress-retry-after-run#readme",
+  "type": "commonjs",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "execa": "^5.1.1"
+  }
+}
