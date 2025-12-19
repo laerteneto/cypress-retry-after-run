@@ -89,6 +89,8 @@ jobs:
              echo "Verified: 2 tests failed as expected."
           else
              echo "Error: Could not find '2 failing' in output."
+             echo "DEBUG: Content of retry.log:"
+             cat retry.log
              echo "::error::Validation Failed: Expected 2 failing tests."
              exit 1
           fi
@@ -160,6 +162,8 @@ jobs:
              echo "Verified: 2 tests failed as expected."
           else
              echo "Error: Could not find '2 failing' in output."
+             echo "DEBUG: Content of retry-ts.log:"
+             cat retry-ts.log
              exit 1
           fi
           
