@@ -83,7 +83,7 @@ async function main() {
         await execa(command, cypressArgs, {
             env,
             stdio: 'inherit',
-            shell: true
+
         });
     } catch (e) {
         console.error(chalk.red('Retry run failed (some tests might have failed again).'));
