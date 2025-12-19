@@ -10,6 +10,8 @@ jobs:
   test-plugin:
     name: Test Plugin
     runs-on: ubuntu-latest
+    env:
+      NO_COLOR: 1
     steps:
       - uses: actions/checkout@v4
 
@@ -66,10 +68,9 @@ jobs:
           fi
           
           # Verification of "4 pending" (skipped tests) behavior
-          # Cypress standard output includes test counts. 
-          # Example: "Tests: 6", "Passing: 0", "Failing: 2", "Pending: 4" (if 4 skipped)
-          # Or "Pending: 4" might appear.
-          if ! echo "$OUTPUT" | grep -q "Pending:.*4"; then
+          # Cypress output table usually aligns "Pending" column with value "4".
+          # We check for "Pending" .... "4" loosely.
+          if ! echo "$OUTPUT" | grep -qE "Pending.*4|Skipped.*4"; then
              echo "Warning: Could not confirm '4 pending' tests in the output. Please check logs."
              # We make this a warning for now to avoid fragility on output text changes
           else 
@@ -114,7 +115,7 @@ jobs:
              exit 1
           fi
           
-          if ! echo "$OUTPUT" | grep -q "Pending:.*4"; then
+          if ! echo "$OUTPUT" | grep -qE "Pending.*4|Skipped.*4"; then
              echo "Warning: Could not confirm '4 pending' tests in the output."
           else 
              echo "Verified: 4 tests were marked as pending (skipped)."
