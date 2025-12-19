@@ -89,12 +89,24 @@ jobs:
           echo "::endgroup::"
           
           # Verify Failure Count
-          if grep -qE "Failing:.*2|2 failing" retry.log; then
+          # Log shows "✖  2 of 2 failed (100%)" in summary.
+          if grep -q "2 of .* failed" retry.log; then
              echo "Verified: 2 tests failed as expected."
           else
              echo "Error: Could not find '2 failing' in output."
              echo "::error::Validation Failed: Expected 2 failing tests."
              exit 1
+          fi
+
+          # Verify Pending Count
+          # Log summary table: 6        -        2        4        - (Failing: 2, Pending: 4)
+          # We look for the pattern "2   4   -" at the end of the summary line.
+          if grep -qE "\s+2\s+4\s+-" retry.log; then
+             echo "Verified: 4 tests were pending/skipped."
+          else
+             echo "Warning: Should have found 4 pending tests."
+             echo "Debug Info: Summary lines:"
+             grep -E "\s+-\s+" retry.log || true
           fi
 
           # Verify Pending Count
@@ -164,11 +176,19 @@ jobs:
           cat retry-ts.log
           echo "::endgroup::"
           
-          if grep -qE "Failing:.*2|2 failing" retry-ts.log; then
+          if grep -q "2 of .* failed" retry-ts.log; then
              echo "Verified: 2 tests failed as expected."
           else
              echo "Error: Could not find '2 failing' in output."
              exit 1
+          fi
+          
+          if grep -qE "\s+2\s+4\s+-" retry-ts.log; then
+             echo "Verified: 4 tests were pending/skipped."
+          else
+             echo "Warning: Should have found 4 pending tests."
+             echo "Debug Info: Summary lines:"
+             grep -E "\s+-\s+" retry-ts.log || true
           fi
           
           if grep -qE "Pending.*4|Skipped.*4" retry-ts.log; then
