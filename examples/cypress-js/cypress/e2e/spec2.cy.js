@@ -1,14 +1,14 @@
 describe('Spec 2', () => {
     it('passes 1', () => {
-        cy.wrap(true).should('be.true')
+        expect(true).to.be.true
     })
 
     it('fails 2', () => {
         // Intentionally failing test
-        cy.wrap(false).should('be.true')
+        expect(false).to.be.true
     })
 
     it('passes 3', () => {
-        cy.visit('https://example.cypress.io')
+        expect(true).to.be.true
     })
 })

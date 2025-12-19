@@ -84,13 +84,15 @@ jobs:
           # Clean colors for grep
           sed -i 's/\x1b\[[0-9;]*m//g' retry.log
           
+          echo "::group::Retry Log Content"
+          cat retry.log
+          echo "::endgroup::"
+          
           # Verify Failure Count
           if grep -qE "Failing:.*2|2 failing" retry.log; then
              echo "Verified: 2 tests failed as expected."
           else
              echo "Error: Could not find '2 failing' in output."
-             echo "DEBUG: Content of retry.log:"
-             cat retry.log
              echo "::error::Validation Failed: Expected 2 failing tests."
              exit 1
           fi
@@ -158,12 +160,14 @@ jobs:
           
           sed -i 's/\x1b\[[0-9;]*m//g' retry-ts.log
           
+          echo "::group::Retry TS Log Content"
+          cat retry-ts.log
+          echo "::endgroup::"
+          
           if grep -qE "Failing:.*2|2 failing" retry-ts.log; then
              echo "Verified: 2 tests failed as expected."
           else
              echo "Error: Could not find '2 failing' in output."
-             echo "DEBUG: Content of retry-ts.log:"
-             cat retry-ts.log
              exit 1
           fi
           
