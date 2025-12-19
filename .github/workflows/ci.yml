@@ -11,14 +11,15 @@ jobs:
     name: Test Plugin
     runs-on: ubuntu-latest
     env:
-      NO_COLOR: 1
+      FORCE_COLOR: 1
+      TERM: xterm-256color
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install Plugin Dependencies
         run: npm ci
@@ -68,11 +69,9 @@ jobs:
           fi
           
           # Verification of "4 pending" (skipped tests) behavior
-          # Cypress output table usually aligns "Pending" column with value "4".
-          # We check for "Pending" .... "4" loosely.
-          if ! echo "$OUTPUT" | grep -qE "Pending.*4|Skipped.*4"; then
+          # We use sed to strip ANSI color codes before grepping to ensure robust matching even with colors enabled.
+          if ! echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -qE "Pending.*4|Skipped.*4"; then
              echo "Warning: Could not confirm '4 pending' tests in the output. Please check logs."
-             # We make this a warning for now to avoid fragility on output text changes
           else 
              echo "Verified: 4 tests were marked as pending (skipped)."
           fi
@@ -115,7 +114,7 @@ jobs:
              exit 1
           fi
           
-          if ! echo "$OUTPUT" | grep -qE "Pending.*4|Skipped.*4"; then
+          if ! echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -qE "Pending.*4|Skipped.*4"; then
              echo "Warning: Could not confirm '4 pending' tests in the output."
           else 
              echo "Verified: 4 tests were marked as pending (skipped)."
