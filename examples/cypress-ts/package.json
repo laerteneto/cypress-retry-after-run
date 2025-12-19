@@ -1,0 +1,19 @@
+{
+  "name": "cypress-ts-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "cypress run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "cypress": "15.8.1",
+    "typescript": "5.9.3",
+    "@cypress/grep": "5.0.1",
+    "cypress-retry-after-run": "file:../../"
+  }
+}

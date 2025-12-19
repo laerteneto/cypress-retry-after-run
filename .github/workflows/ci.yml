@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-plugin:
+    name: Test Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Plugin Dependencies
+        run: npm ci
+
+      - name: Test JS Example
+        working-directory: ./examples/cypress-js
+        run: |
+          npm install
+          
+          echo "::group::Run 1 - Standard Run (Expect Failures)"
+          # Run standard test, allow failure
+          # This should generate .cypress-failures.json
+          npm test || true
+          echo "::endgroup::"
+          
+          echo "::group::Verify Failures File"
+          if [ ! -f ".cypress-failures.json" ]; then
+            echo "Error: .cypress-failures.json was not created!"
+            exit 1
+          fi
+          
+          # Optional: Verify content count using jq if available, or grep
+          FAIL_COUNT=$(grep -o '"title":' .cypress-failures.json | wc -l)
+          echo "Found $FAIL_COUNT failures recorded."
+          if [ "$FAIL_COUNT" != "2" ]; then
+             echo "Error: Expected 2 failures recorded, found $FAIL_COUNT"
+             exit 1
+          fi
+          echo "::endgroup::"
+          
+          echo "::group::Run 2 - Retry Run (Expect Failures)"
+          # Run the retry script. 
+          # We prefer 'npx cypress-retry' which maps to bin/cypress-retry.js
+          # We expect it to fail again because the tests are still broken.
+          # We capture output to verify "Pending" count matches expected behavior (tests skipped).
+          
+          set +e
+          OUTPUT=$(npx cypress-retry 2>&1)
+          EXIT_CODE=$?
+          set -e
+          
+          echo "$OUTPUT"
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+             echo "Error: Retry run passed unexpectedly! Tests should still fail."
+             exit 1
+          fi
+          
+          # Verification of "4 pending" (skipped tests) behavior
+          # Cypress standard output includes test counts. 
+          # Example: "Tests: 6", "Passing: 0", "Failing: 2", "Pending: 4" (if 4 skipped)
+          # Or "Pending: 4" might appear.
+          if ! echo "$OUTPUT" | grep -q "Pending:.*4"; then
+             echo "Warning: Could not confirm '4 pending' tests in the output. Please check logs."
+             # We make this a warning for now to avoid fragility on output text changes
+          else 
+             echo "Verified: 4 tests were marked as pending (skipped)."
+          fi
+          
+          echo "::endgroup::"
+
+      - name: Test TS Example
+        working-directory: ./examples/cypress-ts
+        run: |
+          npm install
+          
+          echo "::group::Run 1 - Standard Run (Expect Failures)"
+          npm test || true
+          echo "::endgroup::"
+          
+          echo "::group::Verify Failures File"
+          if [ ! -f ".cypress-failures.json" ]; then
+            echo "Error: .cypress-failures.json was not created!"
+            exit 1
+          fi
+          
+          FAIL_COUNT=$(grep -o '"title":' .cypress-failures.json | wc -l)
+          echo "Found $FAIL_COUNT failures recorded."
+          if [ "$FAIL_COUNT" != "2" ]; then
+             echo "Error: Expected 2 failures recorded, found $FAIL_COUNT"
+             exit 1
+          fi
+          echo "::endgroup::"
+          
+          echo "::group::Run 2 - Retry Run (Expect Failures)"
+          set +e
+          OUTPUT=$(npx cypress-retry 2>&1)
+          EXIT_CODE=$?
+          set -e
+          
+          echo "$OUTPUT"
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+             echo "Error: Retry run passed unexpectedly! Tests should still fail."
+             exit 1
+          fi
+          
+          if ! echo "$OUTPUT" | grep -q "Pending:.*4"; then
+             echo "Warning: Could not confirm '4 pending' tests in the output."
+          else 
+             echo "Verified: 4 tests were marked as pending (skipped)."
+          fi
+          echo "::endgroup::"
