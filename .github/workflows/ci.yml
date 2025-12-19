@@ -69,8 +69,14 @@ jobs:
           fi
           
           # Verification of "4 pending" (skipped tests) behavior
-          # We use sed to strip ANSI color codes before grepping to ensure robust matching even with colors enabled.
-          if ! echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -qE "Pending.*4|Skipped.*4"; then
+          # Debugging: show the output processed by sed
+          NORMALIZED_OUTPUT=$(echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g')
+          echo "DEBUG: Normalized Output:"
+          echo "$NORMALIZED_OUTPUT"
+          
+          # Simplified grep to just look for "Pending" and "4" on the same line or in proximity?
+          # Actually, let's just dump it and see why it fails.
+          if ! echo "$NORMALIZED_OUTPUT" | grep -qE "Pending.*4|Skipped.*4"; then
              echo "Warning: Could not confirm '4 pending' tests in the output. Please check logs."
           else 
              echo "Verified: 4 tests were marked as pending (skipped)."
@@ -114,7 +120,8 @@ jobs:
              exit 1
           fi
           
-          if ! echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -qE "Pending.*4|Skipped.*4"; then
+          NORMALIZED_OUTPUT=$(echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g')
+          if ! echo "$NORMALIZED_OUTPUT" | grep -qE "Pending.*4|Skipped.*4"; then
              echo "Warning: Could not confirm '4 pending' tests in the output."
           else 
              echo "Verified: 4 tests were marked as pending (skipped)."
