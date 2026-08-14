@@ -6,11 +6,20 @@ on:
 
 jobs:
   test-plugin:
-    name: Test Plugin
+    name: Test Plugin (${{ matrix.example }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - example: cypress-js
+            log: retry.log
+          - example: cypress-ts
+            log: retry-ts.log
     env:
       FORCE_COLOR: 1
       TERM: xterm-256color
+
     steps:
       - uses: actions/checkout@v4
 
@@ -19,182 +28,87 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: ${{ runner.os }}-cypress-${{ hashFiles('**/pnpm-lock.yaml') }}
+
       - name: Install Plugin Dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: Test JS Example
-        working-directory: ./examples/cypress-js
+      - name: Install Example Dependencies
+        working-directory: ./examples/${{ matrix.example }}
+        run: pnpm install --frozen-lockfile
+
+      # ── Run 1: Standard run — expect failures so the plugin writes .cypress-failures.json ──
+
+      - name: Run 1 - Standard Cypress Run
+        working-directory: ./examples/${{ matrix.example }}
+        run: pnpm test || true   # intentional failures → exit 2, continue
+
+      - name: Verify .cypress-failures.json was created
+        working-directory: ./examples/${{ matrix.example }}
         run: |
-          npm install
-          
-          echo "::group::Run 1 - Standard Run (Expect Failures)"
-          # Run standard test, allow failure
-          # This should generate .cypress-failures.json
-          npm test || true
-          echo "::endgroup::"
-          
-          echo "::group::Verify Failures File"
           if [ ! -f ".cypress-failures.json" ]; then
-            echo "Error: .cypress-failures.json was not created!"
+            echo "::error::.cypress-failures.json was not created by the plugin!"
             exit 1
           fi
-          
-          # Optional: Verify content count using jq if available, or grep
-          FAIL_COUNT=$(grep -o '"title":' .cypress-failures.json | wc -l)
-          echo "Found $FAIL_COUNT failures recorded."
+          FAIL_COUNT=$(grep -o '"title":' .cypress-failures.json | wc -l | tr -d ' ')
+          echo "Failures recorded: $FAIL_COUNT"
           if [ "$FAIL_COUNT" != "2" ]; then
-             echo "Error: Expected 2 failures recorded, found $FAIL_COUNT"
-             exit 1
-          fi
-          echo "::endgroup::"
-          
-          echo "::group::Run 2 - Retry Run (Expect Failures)"
-          # Run the retry script. 
-          # We prefer 'npx cypress-retry' which maps to bin/cypress-retry.js
-          # We expect it to fail again because the tests are still broken.
-          # We capture output to verify "Pending" count matches expected behavior (tests skipped).
-          
-          set +e
-          OUTPUT=$(npx cypress-retry 2>&1)
-          EXIT_CODE=$?
-          set -e
-          
-          echo "$OUTPUT"
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-             echo "Error: Retry run passed unexpectedly! Tests should still fail."
-             exit 1
-          fi
-          
-          # Verification of retry behavior
-          # We check for "Failing: 2" and "Pending: 4" to ensure other tests were skipped.
-          # We verify from file to avoid pipe/variable truncation issues.
-          
-          set +e
-          # We use tee to show output in CI logs AND save to file for grep
-          npx cypress-retry 2>&1 | tee retry.log
-          EXIT_CODE=${PIPESTATUS[0]}
-          set -e
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-             echo "Error: Retry run passed unexpectedly! Tests should still fail."
-             exit 1
-          fi
-          
-          # Clean colors for grep
-          sed -i 's/\x1b\[[0-9;]*m//g' retry.log
-          
-          echo "::group::Retry Log Content"
-          cat retry.log
-          echo "::endgroup::"
-          
-          # Verify Failure Count
-          # Log shows "✖  2 of 2 failed (100%)" in summary.
-          if grep -q "2 of .* failed" retry.log; then
-             echo "Verified: 2 tests failed as expected."
-          else
-             echo "Error: Could not find '2 failing' in output."
-             echo "::error::Validation Failed: Expected 2 failing tests."
-             exit 1
-          fi
-
-          # Verify Pending Count
-          # Log summary table: 6        -        2        4        - (Failing: 2, Pending: 4)
-          # We look for the pattern "2   4   -" at the end of the summary line.
-          if grep -qE "\s+2\s+4\s+-" retry.log; then
-             echo "Verified: 4 tests were pending/skipped."
-          else
-             echo "Warning: Should have found 4 pending tests."
-             echo "Debug Info: Summary lines:"
-             grep -E "\s+-\s+" retry.log || true
-          fi
-
-          # Verify Pending Count
-          # Looking for "Pending: 4" or table column with 4
-          if grep -qE "Pending.*4|Skipped.*4" retry.log; then
-             echo "Verified: 4 tests were pending/skipped."
-          else
-             echo "Warning: Should have found 4 pending tests."
-             # Just warning for now, but user requested strict check.
-             # Let's try to be strict but dump info if missing.
-             echo "Debug Info: Lines containing Pending:"
-             grep "Pending" retry.log || true
-          fi
-          
-          echo "::endgroup::"
-
-      - name: Test TS Example
-        working-directory: ./examples/cypress-ts
-        run: |
-          npm install
-          
-          echo "::group::Run 1 - Standard Run (Expect Failures)"
-          npm test || true
-          echo "::endgroup::"
-          
-          echo "::group::Verify Failures File"
-          if [ ! -f ".cypress-failures.json" ]; then
-            echo "Error: .cypress-failures.json was not created!"
+            echo "::error::Expected 2 failures recorded, found $FAIL_COUNT"
             exit 1
           fi
-          
-          FAIL_COUNT=$(grep -o '"title":' .cypress-failures.json | wc -l)
-          echo "Found $FAIL_COUNT failures recorded."
-          if [ "$FAIL_COUNT" != "2" ]; then
-             echo "Error: Expected 2 failures recorded, found $FAIL_COUNT"
-             exit 1
-          fi
-          echo "::endgroup::"
-          
-          echo "::group::Run 2 - Retry Run (Expect Failures)"
+          echo "Failures file looks correct."
+
+      # ── Run 2: Retry — must only run the 2 failed tests (4 others pending) ──
+
+      - name: Run 2 - Retry Only Failed Tests
+        working-directory: ./examples/${{ matrix.example }}
+        run: |
           set +e
-          OUTPUT=$(npx cypress-retry 2>&1)
-          EXIT_CODE=$?
-          set -e
-          
-          echo "$OUTPUT"
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-             echo "Error: Retry run passed unexpectedly! Tests should still fail."
-             exit 1
-          fi
-          
-          # Verification of retry behavior
-          set +e
-          npx cypress-retry 2>&1 | tee retry-ts.log
+          pnpm exec cypress-retry 2>&1 | tee ${{ matrix.log }}
           EXIT_CODE=${PIPESTATUS[0]}
           set -e
-          
+
+          # Strip ANSI colour codes so grep works reliably
+          sed -i 's/\x1b\[[0-9;]*m//g' ${{ matrix.log }}
+
+          # The retry should fail again (tests are intentionally broken)
           if [ $EXIT_CODE -eq 0 ]; then
-             echo "Error: Retry run passed unexpectedly! Tests should still fail."
-             exit 1
+            echo "::error::Retry passed unexpectedly — tests should still fail!"
+            exit 1
           fi
-          
-          sed -i 's/\x1b\[[0-9;]*m//g' retry-ts.log
-          
-          echo "::group::Retry TS Log Content"
-          cat retry-ts.log
-          echo "::endgroup::"
-          
-          if grep -q "2 of .* failed" retry-ts.log; then
-             echo "Verified: 2 tests failed as expected."
+
+          # Verify grep filter worked: only 2 tests should have run (Failing: 2),
+          # and the remaining 4 should be pending (skipped by @cypress/grep).
+          if grep -q "Failing:.*2" ${{ matrix.log }} && grep -q "Pending:.*4" ${{ matrix.log }}; then
+            echo "Retry correctly ran only the 2 failed tests (4 others pending)."
           else
-             echo "Error: Could not find '2 failing' in output."
-             exit 1
+            echo "::error::Retry did not filter tests correctly. Expected Failing: 2, Pending: 4."
+            cat ${{ matrix.log }}
+            exit 1
           fi
-          
-          if grep -qE "\s+2\s+4\s+-" retry-ts.log; then
-             echo "Verified: 4 tests were pending/skipped."
-          else
-             echo "Warning: Should have found 4 pending tests."
-             echo "Debug Info: Summary lines:"
-             grep -E "\s+-\s+" retry-ts.log || true
-          fi
-          
-          if grep -qE "Pending.*4|Skipped.*4" retry-ts.log; then
-             echo "Verified: 4 tests were pending/skipped."
-          else
-             echo "Warning: Should have found 4 pending tests."
-             grep "Pending" retry-ts.log || true
-          fi
-          echo "::endgroup::"
+
+      - name: Upload retry log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retry-log-${{ matrix.example }}
+          path: ./examples/${{ matrix.example }}/${{ matrix.log }}
+

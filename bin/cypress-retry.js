@@ -2,12 +2,15 @@
 
 const fs = require('fs');
 const path = require('path');
-const execa = require('execa');
-const chalk = require('chalk');
+const { spawn } = require('child_process');
 
 const FAILURES_FILE = path.join(process.cwd(), '.cypress-failures.json');
 
 async function main() {
+    // chalk is ESM-only in its latest version.
+    // Dynamic import() is the correct way to consume an ESM package from a CJS file.
+    const { default: chalk } = await import('chalk');
+
     if (!fs.existsSync(FAILURES_FILE)) {
         console.log(chalk.green('No failures file found. Everything seems to have passed previously!'));
         process.exit(0);
@@ -28,62 +31,73 @@ async function main() {
 
     console.log(chalk.yellow(`Found ${failures.length} failed tests. Retrying...`));
 
-    // Construct grep string
-    // @cypress/grep supports OR via "; " (semicolon + space)
-    // We need to escape special characters in titles if necessary, but @cypress/grep is loosely regex or string match.
-    // To match exact titles, it's safer to use the 'tags' or just the raw titles.
-    // We'll join titles with "; " which acts as OR.
-    // Warning: If titles contain ";", this might break. 
-    // Ideally, we should escape ";".
-    const grepString = failures.map(f => f.title.replace(/;/g, '\\;')).join('; ');
-
-    // Also collect unique specs if we want to limit to specific files (optimization)
-    // But @cypress/grep might search all specs unless we also filter specs.
-    // `cypress run --spec ...` accepts glob patterns.
+    // Collect unique specs that had failures
     const uniqueSpecs = [...new Set(failures.map(f => f.spec))].join(',');
 
-    console.log(chalk.blue(`Targeting specs: ${uniqueSpecs}`));
-    // console.log(chalk.blue(`Grep pattern: ${grepString}`)); // checking grep string length might be useful
+    console.log(chalk.blue(`Targeting specs with failures: ${uniqueSpecs}`));
+    
+    // Log which tests failed
+    console.log(chalk.blue(`Failed tests:`));
+    failures.forEach(f => {
+        console.log(chalk.blue(`  - ${f.title} (${f.spec})`));
+    });
 
     const args = process.argv.slice(2); // Pass through user args
 
-    // Construct the environment variable for grep
-    // Cypress requires CYPRESS_ prefix for env vars to be read into config.env
-    const env = {
-        ...process.env,
-        CYPRESS_grep: grepString,
-        // CYPRESS_grepBurn: 1 
-    };
-
     try {
-        // Run Cypress
-        // We use 'cypress run' but we need to make sure we look for the local binary
-        // usually `npx cypress run` or just `cypress run` if in path.
-        // If we are a bin script in the same project, we might want to spawn the sibling cypress.
-        // Safest is `npx cypress run` or assuming `cypress` is in path or `node_modules/.bin/cypress`
+        // Build a grep pattern from failed test titles so @cypress/grep filters
+        // to run only the previously-failed tests, not all tests in those specs.
+        // @cypress/grep v6+ uses --expose grep="..." with semicolon as OR separator.
+        const grepPattern = failures.map(f => f.title).join(';');
 
-        // We'll append the --spec argument to limit the files scanned
-        const cypressArgs = ['cypress', 'run', '--spec', uniqueSpecs, ...args];
+        const cypressArgs = [
+            'cypress', 'run',
+            '--spec', uniqueSpecs,
+            '--expose', `grep=${grepPattern}`,
+            ...args,
+        ];
 
-        // Check if we are in a yarn project (presence of yarn.lock)
-        // Or just prefer npx/yarn based on user preference? User asked for yarn.
-        // If we use 'yarn', it automatically looks for local binaries.
+        // Detect package manager by walking up directory tree
+        let command = 'npx';
+        let args_to_pass = cypressArgs;
+        let currentDir = process.cwd();
+        let found = false;
 
-        const command = 'yarn';
-        // If yarn is not in path, this might fail unless we use absolute path.
-        // But since `npm` wasn't in path, `yarn` likely isn't either.
-        // However, users who use yarn generally have it configured.
-        // Since I know where yarn.cmd is likely to be (AppData/Roaming/npm), I could try to detect it or fallback.
-        // For now, let's try 'yarn' assuming the user will fix their environment or I'll provide instructions.
-        // Actually, sticking to 'npx' is safer if they have node but not yarn in path? 
-        // No, user EXPLICITLY asked for yarn.
+        // Walk up the directory tree to find lock file
+        while (!found && currentDir !== path.dirname(currentDir)) {
+            if (fs.existsSync(path.join(currentDir, 'pnpm-lock.yaml'))) {
+                command = 'pnpm';
+                args_to_pass = ['exec', ...cypressArgs];
+                found = true;
+            } else if (fs.existsSync(path.join(currentDir, 'yarn.lock'))) {
+                command = 'yarn';
+                args_to_pass = cypressArgs;
+                found = true;
+            } else if (fs.existsSync(path.join(currentDir, 'package-lock.json'))) {
+                command = 'npx';
+                args_to_pass = cypressArgs;
+                found = true;
+            }
+            currentDir = path.dirname(currentDir);
+        }
 
-        console.log(chalk.gray(`Running: ${command} ${cypressArgs.join(' ')}`));
+        console.log(chalk.gray(`Running: ${command} ${args_to_pass.join(' ')}`));
 
-        await execa(command, cypressArgs, {
-            env,
-            stdio: 'inherit',
-
+        // Use child_process.spawn with stdio: 'inherit' so Cypress output streams
+        // directly to the terminal. execa v8+ changed how it handles stdio,
+        // making the built-in spawn the more stable choice here.
+        await new Promise((resolve, reject) => {
+            const child = spawn(command, args_to_pass, { stdio: 'inherit' });
+            child.on('close', (code) => {
+                if (code !== 0) {
+                    const err = new Error(`Process exited with code ${code}`);
+                    err.exitCode = code;
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+            child.on('error', reject);
         });
     } catch (e) {
         console.error(chalk.red('Retry run failed (some tests might have failed again).'));

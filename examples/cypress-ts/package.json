@@ -4,16 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "cypress run"
+    "test": "cypress run",
+    "retry": "cypress-retry",
+    "test:full": "cypress run; cypress-retry"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "cypress": "15.8.1",
+    "@types/node": "^22.0.0",
+    "cypress": "15.20.1",
     "typescript": "5.9.3",
-    "@cypress/grep": "5.0.1",
+    "@cypress/grep": "6.0.3",
     "cypress-retry-after-run": "file:../../"
   }
 }

@@ -4,7 +4,9 @@
   "description": "Cypress plugin to re-run only failed tests from the previous run using @cypress/grep",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "pnpm --filter ./examples/cypress-js test:full && pnpm --filter ./examples/cypress-ts test:full",
+    "test:js": "pnpm --filter ./examples/cypress-js test:full",
+    "test:ts": "pnpm --filter ./examples/cypress-ts test:full"
   },
   "bin": {
     "cypress-retry": "./bin/cypress-retry.js"
@@ -34,7 +36,6 @@
   "homepage": "https://github.com/laerteneto/cypress-retry-after-run#readme",
   "type": "commonjs",
   "dependencies": {
-    "chalk": "^4.1.2",
-    "execa": "^5.1.1"
+    "chalk": "6.0.0"
   }
 }
