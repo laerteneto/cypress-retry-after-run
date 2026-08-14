@@ -17,6 +17,8 @@ This is particularly useful in CI/CD pipelines to save time and resources by avo
 npm install --save-dev cypress-retry-after-run @cypress/grep
 # OR
 yarn add -D cypress-retry-after-run @cypress/grep
+# OR
+pnpm add -D cypress-retry-after-run @cypress/grep
 ```
 
 ### 2. Configuration (`cypress.config.js`)
