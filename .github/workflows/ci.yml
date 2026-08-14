@@ -55,6 +55,10 @@ jobs:
         working-directory: ./examples/${{ matrix.example }}
         run: pnpm install --frozen-lockfile
 
+      - name: Install Cypress binary
+        working-directory: ./examples/${{ matrix.example }}
+        run: pnpm exec cypress install
+
       # ── Run 1: Standard run — expect failures so the plugin writes .cypress-failures.json ──
 
       - name: Run 1 - Standard Cypress Run
