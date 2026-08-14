@@ -9,7 +9,7 @@
     "test:ts": "pnpm --filter ./examples/cypress-ts test:full"
   },
   "bin": {
-    "cypress-retry": "./bin/cypress-retry.js"
+    "cypress-retry": "bin/cypress-retry.js"
   },
   "files": [
     "index.js",
