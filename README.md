@@ -90,9 +90,9 @@ If you are using TypeScript, it is also recommended to add the following or some
 ```json
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2022",
     "lib": [
-      "es5",
+      "es2022",
       "dom"
     ],
     "types": [

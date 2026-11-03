@@ -13,10 +13,10 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "cypress": "15.20.1",
-    "typescript": "5.9.3",
-    "@cypress/grep": "6.0.3",
-    "cypress-retry-after-run": "file:../../"
+    "@cypress/grep": "7.0.0",
+    "@types/node": "^26.6.6",
+    "cypress": "16.2.1",
+    "cypress-retry-after-run": "file:../..",
+    "typescript": "7.0.2"
   }
 }
