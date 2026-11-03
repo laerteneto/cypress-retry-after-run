@@ -21,29 +21,29 @@ jobs:
       TERM: xterm-256color
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Get pnpm store directory
         id: pnpm-cache
         run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.pnpm-cache.outputs.dir }}
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: Cache Cypress binary
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/Cypress
           key: ${{ runner.os }}-cypress-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -58,6 +58,11 @@ jobs:
       - name: Install Cypress binary
         working-directory: ./examples/${{ matrix.example }}
         run: pnpm exec cypress install
+
+      - name: Type-check
+        if: matrix.example == 'cypress-ts'
+        working-directory: ./examples/${{ matrix.example }}
+        run: pnpm exec tsc --noEmit
 
       # ── Run 1: Standard run — expect failures so the plugin writes .cypress-failures.json ──
 
@@ -117,7 +122,7 @@ jobs:
 
       - name: Upload retry log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: retry-log-${{ matrix.example }}
           path: ./examples/${{ matrix.example }}/${{ matrix.log }}

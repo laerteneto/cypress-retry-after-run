@@ -3,6 +3,7 @@
   "version": "1.0.10",
   "description": "Cypress plugin to re-run only failed tests from the previous run using @cypress/grep",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "pnpm --filter ./examples/cypress-js test:full && pnpm --filter ./examples/cypress-ts test:full",
     "test:js": "pnpm --filter ./examples/cypress-js test:full",
@@ -13,6 +14,7 @@
   },
   "files": [
     "index.js",
+    "index.d.ts",
     "bin/**/*",
     "README.md"
   ],
@@ -37,6 +39,6 @@
   "type": "commonjs",
   "packageManager": "pnpm@11.20.0",
   "dependencies": {
-    "chalk": "6.0.0"
+    "chalk": "6.0.1"
   }
 }

@@ -1,0 +1,24 @@
+version: 2
+updates:
+  # The "npm" ecosystem also handles pnpm (it reads pnpm-lock.yaml).
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "/examples/cypress-js"
+      - "/examples/cypress-ts"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
