@@ -14,7 +14,7 @@
   "type": "commonjs",
   "devDependencies": {
     "@cypress/grep": "7.0.0",
-    "cypress": "16.2.1",
+    "cypress": "16.3.0",
     "cypress-retry-after-run": "file:../.."
   }
 }
